@@ -1,0 +1,60 @@
+plugins {
+	id 'java'
+	id 'idea'
+	id 'maven-publish'
+	id "org.springframework.boot" version "1.4.2.RELEASE"
+	id 'io.franzbecker.gradle-lombok' version '1.7'
+	id "org.flywaydb.flyway" version "4.0.3"
+}
+
+group = 'com.searshomeservices.ns'
+version  = '0.1.0'
+
+sourceCompatibility = JavaVersion.VERSION_1_8
+targetCompatibility = JavaVersion.VERSION_1_8
+
+ext {
+	newrelicVersion='3.25.0'
+	aws_access_key = System.getenv('AWS_ACCESS_KEY') != null ?  System.getenv('AWS_ACCESS_KEY') : AWS_ACCESS_KEY
+	aws_secret_key = System.getenv('AWS_SECRET_KEY') != null ?  System.getenv('AWS_SECRET_KEY') : AWS_SECRET_KEY
+}
+
+repositories {
+	jcenter()
+}
+
+configurations {
+	newrelic
+	compile.exclude module: 'spring-boot-starter-logging'
+	compile.exclude group: "org.slf4j", module: "slf4j-log4j12"
+	compile.exclude group: "log4j", module: "log4j"
+	compile.exclude group: 'commons-logging', module: 'commons-logging'
+    //no flyway DB during testing, especially for codeship
+	testCompile.exclude group: 'org.flywaydb', module: 'flyway-core'
+}
+
+dependencies {
+	newrelic "com.newrelic.agent.java:newrelic-agent:${newrelicVersion}"
+	compile('org.springframework.boot:spring-boot-starter-actuator')
+	compile('org.springframework.boot:spring-boot-starter-data-jpa')
+	compile('org.springframework.boot:spring-boot-starter-data-rest')
+	compile "org.flywaydb:flyway-core:4.0.3"
+	compile('org.postgresql:postgresql:9.4.1212.jre7')
+	compile 'ch.qos.logback:logback-classic:1.1.7'
+
+	testCompile('org.springframework.boot:spring-boot-starter-test')
+	testCompile 'com.h2database:h2:1.4.193'
+}
+
+build << {
+	copy {
+		from configurations.newrelic into "$buildDir/libs" rename { fileName -> 'newrelic.jar' }
+	}
+	copy {
+		from 'src/main/config/' into "$buildDir/libs"
+	}
+}
+
+task wrapper(type: Wrapper) {
+	gradleVersion = '3.1'
+}

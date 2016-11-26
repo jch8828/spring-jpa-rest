@@ -1,0 +1,69 @@
+<configuration>
+    <shutdownHook class="ch.qos.logback.core.hook.DelayingShutdownHook"/>
+
+    <property name="app_name" value="shs-ns-data-service" />
+
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/${app_name}.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+            <fileNamePattern>logs/${app_name}.%i.log.zip</fileNamePattern>
+            <minIndex>1</minIndex>
+            <maxIndex>30</maxIndex>
+        </rollingPolicy>
+
+        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+            <maxFileSize>150MB</maxFileSize>
+        </triggeringPolicy>
+        <encoder>e
+            <pattern>%d{MMM dd yyyy HH:mm:ss.SSS, America/Los_Angeles} [%thread %X{X-Request-ID}] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="ASYNC_FILE" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>500</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <appender-ref ref="FILE" />
+    </appender>
+
+    <springProfile name="production,staging">
+        <springProfile name="production">
+            <property name="pt_host" value="logs4.papertrailapp.com" />
+            <property name="pt_port" value="16456" />
+            <property name="log_prefix" value="${app_name}-pr" />
+        </springProfile>
+        <springProfile name="staging">
+            <property name="pt_host" value="logs4.papertrailapp.com" />
+            <property name="pt_port" value="28814" />
+            <property name="log_prefix" value="${app_name}-st" />
+        </springProfile>
+
+        <appender name="PAPERTRAIL" class="ch.qos.logback.classic.net.SyslogAppender">
+            <syslogHost>${pt_host}</syslogHost>
+            <port>${pt_port}</port>
+            <facility>USER</facility>
+            <suffixPattern>${log_prefix}: [%thread %X{Request-Id}] %-5level %logger{36} - %msg</suffixPattern>
+        </appender>
+
+        <appender name="ASYNC_PAPERTRAIL" class="ch.qos.logback.classic.AsyncAppender">
+            <queueSize>500</queueSize>
+            <discardingThreshold>0</discardingThreshold>
+            <appender-ref ref="PAPERTRAIL" />
+        </appender>
+    </springProfile>
+
+    <logger name="org.springframework" level="INFO" />
+
+    <logger name="com.searshomeservices" level="INFO" additivity="false">
+        <springProfile name="production">
+            <appender-ref ref="ASYNC_PAPERTRAIL" />
+        </springProfile>
+        <appender-ref ref="ASYNC_FILE" />
+    </logger>
+
+    <root level="${log.level:-INFO}">
+        <springProfile name="staging">
+            <appender-ref ref="ASYNC_PAPERTRAIL" />
+        </springProfile>
+        <appender-ref ref="ASYNC_FILE" />
+    </root>
+</configuration>
