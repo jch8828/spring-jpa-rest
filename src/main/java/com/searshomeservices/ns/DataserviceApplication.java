@@ -13,4 +13,12 @@ public class DataserviceApplication {
 		SpringApplication.run(DataserviceApplication.class, args);
 		logger.info("shs-ns-data-service started successfully");
 	}
+	
+	@Bean
+	@Primary
+	public RestTemplate restTemplate() {
+		//ignores certificate checking
+		CloseableHttpClient httpClient = HttpClients.custom().setSSLHostnameVerifier(new NoopHostnameVerifier()).build();
+		return new RestTemplate( new HttpComponentsClientHttpRequestFactory(httpClient));
+	}
 }
