@@ -16,6 +16,22 @@ public class DataserviceApplication {
 	
 	@Bean
 	@Primary
+	public ObjectMapper objectMapper() {
+		ObjectMapper mapper = new ObjectMapper();
+		mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+		mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+		mapper.registerModule(new Jackson2HalModule());
+
+		//consuming hateoas resources
+		MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
+		converter.setSupportedMediaTypes(MediaType.parseMediaTypes("application/hal+json"));
+		converter.setObjectMapper(mapper);
+
+		return mapper;
+	}
+	
+	@Bean
+	@Primary
 	public RestTemplate restTemplate() {
 		//ignores certificate checking
 		CloseableHttpClient httpClient = HttpClients.custom().setSSLHostnameVerifier(new NoopHostnameVerifier()).build();
